@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Predicción de raíces con TensorFlow.js</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.8.0/dist/tf.min.js"></script>
+</head>
+<body>
+  <h2>Predecir raíces de: y = 2x² - 3x + 1</h2>
+
+  <input type="number" id="inputY" placeholder="Ingresa un valor para y" />
+  <button onclick="predecir()">Predecir raíces</button>
+
+  <p id="estado">Entrenando modelo...</p>
+  <p id="resultado"></p>
+
+  <script>
+    // 1. Función para obtener las raíces reales de y = 2x² - 3x + 1
+    function obtenerRaices(y) {
+      const a = 2, b = -3, c = 1 - y;
+      const resol = b * b - 4 * a * c;
+      if (resol < 0) return [0, 0]; // No hay raíces reales
+      const raiz = Math.sqrt(resol);
+      const x1 = (-b + raiz) / (2 * a);
+      const x2 = (-b - raiz) / (2 * a);
+      return [x1, x2];
+    }
+
+    // 2. Generar datos de entrenamiento
+    const xs = [], ys = [];
+    for (let y = -10; y <= 30; y += 0.5) {
+      xs.push([y]); // entrada: valor de y
+      ys.push(obtenerRaices(y)); // salida: las dos raíces x1 y x2
+    }
+
+    const inputTensor = tf.tensor2d(xs);
+    const outputTensor = tf.tensor2d(ys);
+
+    // 3. Crear modelo
+    const modelo = tf.sequential();
+    modelo.add(tf.layers.dense({ inputShape: [1], units: 10, activation: 'relu' }));
+    modelo.add(tf.layers.dense({ units: 2 })); // 2 salidas: x1 y x2
+    modelo.compile({ optimizer: 'adam', loss: 'meanSquaredError' });
+
+    // 4. Entrenar el modelo
+    const estado = document.getElementById("estado");
+    async function entrenarModelo() {
+      await modelo.fit(inputTensor, outputTensor, {
+        epochs: 500,
+        callbacks: {
+          onEpochEnd: (epoca, logs) => {
+            estado.textContent = `Entrenando... pérdida: ${logs.loss.toFixed(5)}`;
+          },
+          onTrainEnd: () => {
+            estado.textContent = "Modelo entrenado correctamente.";
+          }
+        }
+      });
+    }
+    entrenarModelo();
+
+    // 5. Función para predecir raíces
+    async function predecir() {
+      const y = parseFloat(document.getElementById("inputY").value);
+      if (isNaN(y)) {
+        alert("Por favor ingresa un número válido.");
+        return;
+      }
+
+      const input = tf.tensor2d([[y]]);
+      const prediccion = modelo.predict(input);
+      const [x1, x2] = (await prediccion.array())[0];
+
+      const resultado = document.getElementById("resultado");
+      if (Math.abs(x1) < 1e-4 && Math.abs(x2) < 1e-4) {
+        resultado.textContent = `No hay raíces reales para y = ${y}`;
+      } else {
+        resultado.textContent = `Raíces aproximadas para y = ${y}:\n x₁ ≈ ${x1.toFixed(4)}, x₂ ≈ ${x2.toFixed(4)}`;
+      }
+    }
+  </script>
+</body>
+</html>
