@@ -8,7 +8,7 @@
 <body>
   <h2>Predecir raíces de: y = 2x² - 3x + 1</h2>
 
-  <input type="number" id="inputY" placeholder="Ingresa un valor para y" />
+  <input type="number" id="inputX" placeholder="Ingresa un valor para x" />
   <button onclick="predecir()">Predecir raíces</button>
 
   <p id="estado">Entrenando modelo...</p>
@@ -28,9 +28,9 @@
 
     // 2. Generar datos de entrenamiento
     const xs = [], ys = [];
-    for (let y = -10; y <= 30; y += 0.5) {
-      xs.push([y]); // entrada: valor de y
-      ys.push(obtenerRaices(y)); // salida: las dos raíces x1 y x2
+    for (let x = -10; x <= 30; x += 0.5) {
+      xs.push([x]); // entrada: valor de y
+      ys.push([2*x*x-3*x+1]); // salida: las dos raíces x1 y x2
     }
 
     const inputTensor = tf.tensor2d(xs);
@@ -39,7 +39,7 @@
     // 3. Crear modelo
     const modelo = tf.sequential();
     modelo.add(tf.layers.dense({ inputShape: [1], units: 10, activation: 'relu' }));
-    modelo.add(tf.layers.dense({ units: 2 })); // 2 salidas: x1 y x2
+    modelo.add(tf.layers.dense({ units: 1 })); // 2 salidas: x1 y x2
     modelo.compile({ optimizer: 'adam', loss: 'meanSquaredError' });
 
     // 4. Entrenar el modelo
@@ -61,23 +61,20 @@
 
     // 5. Función para predecir raíces
     async function predecir() {
-      const y = parseFloat(document.getElementById("inputY").value);
-      if (isNaN(y)) {
-        alert("Por favor ingresa un número válido.");
-        return;
-      }
+  const x = parseFloat(document.getElementById("inputX").value);
+  if (isNaN(x)) {
+    alert("Por favor ingresa un número válido.");
+    return;
+  }
 
-      const input = tf.tensor2d([[y]]);
-      const prediccion = modelo.predict(input);
-      const [x1, x2] = (await prediccion.array())[0];
+  const input = tf.tensor2d([[x]]);
+  const prediccion = modelo.predict(input);
+  const y = (await prediccion.array())[0][0];
 
-      const resultado = document.getElementById("resultado");
-      if (Math.abs(x1) < 1e-4 && Math.abs(x2) < 1e-4) {
-        resultado.textContent = `No hay raíces reales para y = ${y}`;
-      } else {
-        resultado.textContent = `Raíces aproximadas para y = ${y}:\n x₁ ≈ ${x1.toFixed(4)}, x₂ ≈ ${x2.toFixed(4)}`;
-      }
-    }
+  const resultado = document.getElementById("resultado");
+  resultado.textContent = `Para x = ${x}, y ≈ ${y.toFixed(4)}`;
+}
+
   </script>
 </body>
 </html>
